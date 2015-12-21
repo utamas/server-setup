@@ -11,7 +11,7 @@
 #user:
 #    name: utamas
 #    passwd: 
-#udpateKernel: false
+#kernel: v3.14.1-trusty
 #country: hu
 
 require 'yaml'
@@ -37,7 +37,7 @@ Vagrant.configure(2) do |config|
 
     gitlab.vm.provision "shell" do |script|
       script.path = "provision/utamas-update-kernel.sh"
-      script.args = ["#{configuration['user']['name']}", "#{configuration['user']['passwd']}", "#{configuration['country']}", "#{configuration['udpateKernel']}"]
+      script.args = ["#{configuration['user']['name']}", "#{configuration['user']['passwd']}", "#{configuration['country']}", "#{configuration['kernel']}"]
     end
 
     gitlab.vm.provision :reload

@@ -27,18 +27,18 @@ replaceSourceList() {
 
 installBasics() {
 	apt-get -y update
-	apt-get -y install ntp curl mc vim htop apt-transport-https
+	apt-get -y install ntp curl mc vim htop apt-transport-https lynx
 }
 
-updateKernelTo_4_3_3() {
+updateKernelTo() {
+	local version=${1:-v4.3.3-wily}
+
 	rm -rf /tmp/kernel-update
 	mkdir -p /tmp/kernel-update
 	cd /tmp/kernel-update
 
-	wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.3.3-wily/linux-headers-4.3.3-040303-generic_4.3.3-040303.201512150130_amd64.deb
-	wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.3.3-wily/linux-headers-4.3.3-040303_4.3.3-040303.201512150130_all.deb
-	wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.3.3-wily/linux-image-4.3.3-040303-generic_4.3.3-040303.201512150130_amd64.deb
-	
+	wget $(lynx -dump -listonly -dont-wrap-pre http://kernel.ubuntu.com/~kernel-ppa/mainline/$version/ | egrep "(generic|all)" | egrep  '(image|headers)' | egrep '(amd64|all)' | cut -d ' ' -f 4)
+
 	dpkg -i *.deb
 }
 
@@ -52,16 +52,17 @@ setupServer() {
 	local userName=$1
 	local passwd=$2
 	local country=${3:-hu}
-	local updateKernel=${4:-false}
+	#local updateKernel=${4:-false}
+	local kernelVersion=${4}
 
-	echo "Setting up server: apt-source country: $country, updating kernel: $updateKernel."
+	echo "Setting up server: apt-source country: $country, updating kernel to $kernelVersion."
 
-		#&& installBasics \
 	replaceSourceList "$country" \
+		&& installBasics \
 		&& installUser $userName $passwd
 
-	if $updateKernel; then
-		updateKernelTo_4_3_3
+	if [[ -z "$kernelVersion" ]]; then
+		updateKernelTo "$kernelVersion"
 	fi
 }
 

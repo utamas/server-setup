@@ -55,7 +55,8 @@ installSquid() {
 		echo "refresh_pattern .		0	20%	4320" | sudo tee -a /etc/squid3/squid.conf
 	}
 
-	sudo apt-get install squid@3.3.8
+	#sudo apt-get install -y squid3=3.3.8-1ubuntu6.4
+	sudo apt-get install -y squid3
 	sudo mv /etc/squid3/squid.conf /etc/squid3/squid.conf_bckp
 	sudo touch /etc/squid3/squid.conf
 
@@ -64,24 +65,83 @@ installSquid() {
 	sudo service squid3 restart
 }
 
+installNginx() {
+	apt-get install -y nginx
+}
+
 #installChefServer() {
 #}
 
-startingServices() {
-	#--publish 2222:22 \
-	docker run --detach \
-    	--hostname gitlab.example.com \
-    	--publish 8443:443 --publish 8080:80 \
-    	--name gitlab \
-    	--restart always \
-    	--volume /srv/gitlab/config:/etc/gitlab \
-    	--volume /srv/gitlab/logs:/var/log/gitlab \
-    	--volume /srv/gitlab/data:/var/opt/gitlab \
-    	gitlab/gitlab-ce:latest
+setupFirewall() {
+	local ssh=22
+	local gitLabSsh=2222
+	local http=80
+	local https=443
+	local proxy=1986
+
+	local ports=($ssh $gitLabSsh $http $https $proxy)
+
+	# Flushing firewall rules.
+	sudo iptables -F
+	# Enabling outgoing packets.
+	sudo iptables -P OUTPUT ACCEPT
+	sudo iptables -P INPUT DROP
+	sudo iptables -P FORWARD DROP
+
+	sudo iptables -A INPUT --in-interface lo -j ACCEPT
+
+	for port in "${ports[@]}"; do
+		sudo iptables -A INPUT -p tcp --dport $port -j ACCEPT
+	done
+
+	#iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+	sudo iptables-save > /etc/iptables.conf
+
+	echo "post-up iptables-restore < /etc/iptables.conf" | sudo tee -a /etc/network/interfaces
+}
+
+startServices() {
+	local sharedFolderRoot=/srv
+
+	local gitlabPort=8080
+	local jenkinsPort=8081
+
+	startGitLab() {
+		mkdir $sharedFolderRoot/gitlab
+
+		#--publish 2222:22 \
+		#--publish 8443:443 
+		docker run --detach \
+	    	--hostname gitlab.example.com \
+	    	--publish $gitlabPort:80 \
+	    	--name gitlab \
+	    	--restart always \
+	    	--volume $sharedFolderRoot/gitlab/config:/etc/gitlab \
+	    	--volume $sharedFolderRoot/gitlab/logs:/var/log/gitlab \
+	    	--volume $sharedFolderRoot/gitlab/data:/var/opt/gitlab \
+	    	gitlab/gitlab-ce:latest
+
+	}
+
+	startJenkins() {
+		local jenkinsRoot=$sharedFolderRoot/jenkins
+		mkdir -p $jenkinsRoot
+		useradd --home $jenkinsRoot jenkins
+
+
+		docker run -p $jenkinsPort:8080 -p 50000:50000 -v $jenkinsRoot:/var/jenkins_home -u jenkins jenkins
+	}
+
+	startGitLab && startJenkins
 }
 
 setupServer() {
-	installDocker
+	setupFirewall \
+		&& installDocker \
+		&& installSquid \
+		&& installNginx \
+		&& startServices
 }
 
 setupServer "$@"
