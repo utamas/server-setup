@@ -30,6 +30,13 @@ installBasics() {
 	apt-get -y install ntp curl mc vim htop apt-transport-https lynx
 }
 
+
+installUser() {
+	local USERNAME=$1
+	local PASS=$2
+	sudo useradd -p $(openssl passwd -1 $PASS) $USERNAME -g sudo
+}
+
 updateKernelTo() {
 	local version=${1:-v4.3.3-wily}
 
@@ -40,12 +47,6 @@ updateKernelTo() {
 	wget $(lynx -dump -listonly -dont-wrap-pre http://kernel.ubuntu.com/~kernel-ppa/mainline/$version/ | egrep "(generic|all)" | egrep  '(image|headers)' | egrep '(amd64|all)' | cut -d ' ' -f 4)
 
 	dpkg -i *.deb
-}
-
-installUser() {
-	local USERNAME=$1
-	local PASS=$2
-	sudo useradd -p $(openssl passwd -1 $PASS) $USERNAME -g sudo
 }
 
 setupServer() {
@@ -61,7 +62,8 @@ setupServer() {
 		&& installBasics \
 		&& installUser $userName $passwd
 
-	if [[ -z "$kernelVersion" ]]; then
+	if [[ -n "$kernelVersion" ]]; then
+		echo "updating kernel"
 		updateKernelTo "$kernelVersion"
 	fi
 }

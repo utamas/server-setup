@@ -28,11 +28,11 @@ Vagrant.configure(2) do |config|
 
     gitlab.vm.network "private_network", ip: "192.168.200.100"
 
-    #gitlab.vm.synced_folder "./utamas/", "/home/vagrant/utamas"
+    gitlab.vm.synced_folder "./utamas/", "/home/vagrant/utamas"
 
     gitlab.vm.provider "virtualbox" do |vb|
       vb.name = "gitlab"
-      vb.memory = "1024"
+      vb.memory = "2048"
     end
 
     gitlab.vm.provision "shell" do |script|
@@ -46,5 +46,19 @@ Vagrant.configure(2) do |config|
       script.path = "provision/utamas-install.sh"
     end
 
+  end
+
+  config.vm.define "sandbox" do |sandbox|
+    sandbox.vm.box = "ubuntu/trusty64"
+    sandbox.vm.box_check_update = true
+
+    sandbox.vm.network "private_network", ip: "192.168.200.100"
+
+    sandbox.vm.synced_folder "./utamas/", "/home/vagrant/utamas"
+
+    sandbox.vm.provider "virtualbox" do |vb|
+      vb.name = "sandbox"
+      vb.memory = "1024"
+    end
   end
 end

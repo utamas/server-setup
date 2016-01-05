@@ -3,12 +3,14 @@
 installDocker() {
 	sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 	echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee /etc/apt/sources.list.d/docker.list
-	apt-get update
-	apt-get purge -y lxc-docker
-	apt-cache policy docker-engine
-	apt-get install -y linux-image-extra-4.2.0-19-generic
-	apt-get update -y
-	apt-get install -y docker-engine
+	sudo apt-get update
+	sudo apt-get purge -y lxc-docker
+	sudo apt-cache policy docker-engine
+	sudo apt-get install -y linux-image-extra-4.2.0-19-generic
+	sudo apt-get update -y
+	sudo apt-get install -y docker-engine
+
+	# TODO: fail if installation has failed.
 }
 
 installSquid() {
@@ -66,7 +68,7 @@ installSquid() {
 }
 
 installNginx() {
-	apt-get install -y nginx
+	sudo apt-get install -y nginx
 }
 
 #installChefServer() {
@@ -94,7 +96,7 @@ setupFirewall() {
 		sudo iptables -A INPUT -p tcp --dport $port -j ACCEPT
 	done
 
-	#iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+	sudo iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 	sudo iptables-save > /etc/iptables.conf
 
@@ -102,45 +104,57 @@ setupFirewall() {
 }
 
 startServices() {
-	local sharedFolderRoot=/srv
+	local sharedFolderRoot=/srv/docker
 
 	local gitlabPort=8080
 	local jenkinsPort=8081
 
+	sudo docker pull sameersbn/bind:latest
+	sudo docker pull gitlab/gitlab-ce:latest
+
 	startGitLab() {
-		mkdir $sharedFolderRoot/gitlab
+		sudo mkdir $sharedFolderRoot/gitlab
 
 		#--publish 2222:22 \
 		#--publish 8443:443 
-		docker run --detach \
-	    	--hostname gitlab.example.com \
-	    	--publish $gitlabPort:80 \
-	    	--name gitlab \
-	    	--restart always \
-	    	--volume $sharedFolderRoot/gitlab/config:/etc/gitlab \
-	    	--volume $sharedFolderRoot/gitlab/logs:/var/log/gitlab \
-	    	--volume $sharedFolderRoot/gitlab/data:/var/opt/gitlab \
-	    	gitlab/gitlab-ce:latest
+		sudo docker run --detach \
+            --hostname $(hostname -f) \
+            --publish $gitlabPort:80 \
+            --name gitlab \
+            --restart always \
+            --volume $sharedFolderRoot/gitlab/config:/etc/gitlab \
+            --volume $sharedFolderRoot/gitlab/logs:/var/log/gitlab \
+            --volume $sharedFolderRoot/gitlab/data:/var/opt/gitlab \
+            gitlab/gitlab-ce:latest
+	}
 
+	startDns() {
+		sudo docker pull sameersbn/bind:latest
+		sudo docker run -d --name=bind --dns=127.0.0.1 \
+            --publish=172.17.0.1:53:53/udp --publish=172.17.0.1:10000:10000 \
+            --volume=/srv/docker/bind:/data \
+            --env='ROOT_PASSWORD=SecretPassword' \
+               sameersbn/bind:latest
 	}
 
 	startJenkins() {
 		local jenkinsRoot=$sharedFolderRoot/jenkins
-		mkdir -p $jenkinsRoot
-		useradd --home $jenkinsRoot jenkins
+		sudo mkdir -p $jenkinsRoot
+		sudo useradd --home $jenkinsRoot jenkins
+		sudo chown jenkins:jenkins $jenkinsRoot
 
 
-		docker run -p $jenkinsPort:8080 -p 50000:50000 -v $jenkinsRoot:/var/jenkins_home -u jenkins jenkins
+		sudo docker run -d -p $jenkinsPort:8080 -p 50000:50000 -v $jenkinsRoot:/var/jenkins_home -u $(id -u jenkins) jenkins
 	}
 
-	startGitLab && startJenkins
+	#startGitLab && startDns #&& startJenkins
 }
 
 setupServer() {
 	setupFirewall \
-		&& installDocker \
-		&& installSquid \
 		&& installNginx \
+		&& installSquid \
+		&& installDocker \
 		&& startServices
 }
 
