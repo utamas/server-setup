@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-installDocker() {
+function installDocker() {
 	sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 	echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee /etc/apt/sources.list.d/docker.list
 	sudo apt-get update
@@ -13,8 +13,8 @@ installDocker() {
 	# TODO: fail if installation has failed.
 }
 
-installSquid() {
-	flushSquidConfiguration() {
+function installSquid() {
+	function flushSquidConfiguration() {
 		echo "#  include /path/to/included/file/squid.acl.config" | sudo tee -a /etc/squid3/squid.conf
 		echo "#acl localnet src 92.249.130.54" | sudo tee -a /etc/squid3/squid.conf
 
@@ -57,7 +57,6 @@ installSquid() {
 		echo "refresh_pattern .		0	20%	4320" | sudo tee -a /etc/squid3/squid.conf
 	}
 
-	#sudo apt-get install -y squid3=3.3.8-1ubuntu6.4
 	sudo apt-get install -y squid3
 	sudo mv /etc/squid3/squid.conf /etc/squid3/squid.conf_bckp
 	sudo touch /etc/squid3/squid.conf
@@ -67,14 +66,14 @@ installSquid() {
 	sudo service squid3 restart
 }
 
-installNginx() {
+function installNginx() {
 	sudo apt-get install -y nginx
 }
 
 #installChefServer() {
 #}
 
-setupFirewall() {
+function setupFirewall() {
 	local ssh=22
 	local gitLabSsh=2222
 	local http=80
@@ -103,16 +102,24 @@ setupFirewall() {
 	echo "post-up iptables-restore < /etc/iptables.conf" | sudo tee -a /etc/network/interfaces
 }
 
-startServices() {
+function startServices() {
 	local sharedFolderRoot=/srv/docker
 
 	local gitlabPort=8080
 	local jenkinsPort=8081
 
+    sudo docker pull gitlab/gitlab-ce:latest
 	sudo docker pull sameersbn/bind:latest
-	sudo docker pull gitlab/gitlab-ce:latest
+    # sudo docker pull sameersbn/bind:latest
+	#sudo docker pull gitlab/gitlab-ce:latest
 
-	startGitLab() {
+    sudo docker pull gocd/gocd-server
+	sudo docker pull gocd/gocd-agent
+
+    #docker run -it -d --name gocd gocd/gocd-server
+    #docker run -tid -e GO_SERVER=172.17.0.2:8153 --name=gocd_agent-01 gocd/gocd-agent
+
+	function startGitLab() {
 		sudo mkdir $sharedFolderRoot/gitlab
 
 		#--publish 2222:22 \
@@ -128,8 +135,7 @@ startServices() {
             gitlab/gitlab-ce:latest
 	}
 
-	startDns() {
-		sudo docker pull sameersbn/bind:latest
+	function startDns() {
 		sudo docker run -d --name=bind --dns=127.0.0.1 \
             --publish=172.17.0.1:53:53/udp --publish=172.17.0.1:10000:10000 \
             --volume=/srv/docker/bind:/data \
@@ -137,7 +143,7 @@ startServices() {
                sameersbn/bind:latest
 	}
 
-	startJenkins() {
+	function startJenkins() {
 		local jenkinsRoot=$sharedFolderRoot/jenkins
 		sudo mkdir -p $jenkinsRoot
 		sudo useradd --home $jenkinsRoot jenkins
@@ -151,8 +157,8 @@ startServices() {
 }
 
 setupServer() {
-	setupFirewall \
-		&& installNginx \
+	#setupFirewall \&&
+    installNginx \
 		&& installSquid \
 		&& installDocker \
 		&& startServices
