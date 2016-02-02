@@ -40,12 +40,12 @@ Vagrant.configure(2) do |config|
       script.args = ["#{configuration['user']['name']}", "#{configuration['user']['passwd']}", "#{configuration['country']}", "#{configuration['kernel']}"]
     end
 
-    utamas.vm.provision :reload
+    #utamas.vm.provision :reload
 
-    utamas.vm.provision "shell" do |script|
-      script.path = "provision/utamas-install.sh"
-      script.args = ["#{configuration['service']['dns']['rootPassword']}"]
-    end
+    #utamas.vm.provision "shell" do |script|
+    #  script.path = "provision/utamas-install.sh"
+    #  script.args = ["#{configuration['service']['dns']['rootPassword']}"]
+    #end
 
   end
 end
