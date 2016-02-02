@@ -66,8 +66,33 @@ function installSquid() {
 	sudo service squid3 restart
 }
 
+function nginxConf() {
+	local destination=/etc/nginx/sites-available
+
+    local file=$1; shift
+    local serverIp=$1; shift
+    local domain=$1; shift
+    local targetIp=$1; shift
+    local targetPort=$1; shift
+
+    cp /home/vagrant/utamas/nginx/nginx.conf.template $destination$file
+    sed -i "s/###SERVER_IP###/$serverIp/g" $destination$file
+    sed -i "s/###DOMAIN###/$domain/g" $destination$file
+    sed -i "s/###TARGET_IP###/$targetIp/g" $destination$file
+    sed -i "s/###TARGET_PORT###/$targetPort/g" $destination$file
+}
+
 function installNginx() {
+	local source=/home/vagrant/utamas/nginx/sites-available
+	local destination=/etc/nginx/sites-available
+
 	sudo apt-get install -y nginx
+	sudo rm -rf /etc/nginx/sites-enabled/default
+	sudo mv /etc/nginx/sites-available/ /etc/nginx/sites-available_bckp
+	sudo mkdir -p /etc/nginx/sites-available/dev
+
+
+    nginxConf /dev/dns.conf 192.168.200.100 dns.dev.utamas.local 172.17.0.2 5136
 }
 
 #installChefServer() {
@@ -103,6 +128,8 @@ function setupFirewall() {
 }
 
 function startServices() {
+    local rootPassword=$1; shift
+
 	local sharedFolderRoot=/srv/docker
 
 	local gitlabPort=8080
@@ -118,6 +145,16 @@ function startServices() {
 
     #docker run -it -d --name gocd gocd/gocd-server
     #docker run -tid -e GO_SERVER=172.17.0.2:8153 --name=gocd_agent-01 gocd/gocd-agent
+
+	function startDns() {
+	    local ip=$1; shift
+
+		sudo docker run -d --name=bind --dns=127.0.0.1 \
+            --publish=$ip:53:53/udp --publish=$ip:10000:10000 \
+            --volume=/srv/docker/bind:/data \
+            --env='ROOT_PASSWORD=6almasaBB' \
+               sameersbn/bind:latest
+	}
 
 	function startGitLab() {
 		sudo mkdir $sharedFolderRoot/gitlab
@@ -135,14 +172,6 @@ function startServices() {
             gitlab/gitlab-ce:latest
 	}
 
-	function startDns() {
-		sudo docker run -d --name=bind --dns=127.0.0.1 \
-            --publish=172.17.0.1:53:53/udp --publish=172.17.0.1:10000:10000 \
-            --volume=/srv/docker/bind:/data \
-            --env='ROOT_PASSWORD=SecretPassword' \
-               sameersbn/bind:latest
-	}
-
 	function startJenkins() {
 		local jenkinsRoot=$sharedFolderRoot/jenkins
 		sudo mkdir -p $jenkinsRoot
@@ -157,6 +186,8 @@ function startServices() {
 }
 
 setupServer() {
+    local dnsRootPassword=$1; shift
+
 	#setupFirewall \&&
     installNginx \
 		&& installSquid \

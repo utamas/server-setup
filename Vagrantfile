@@ -22,43 +22,30 @@ VAGRANT_COMMAND = ARGV[0]
 Vagrant.configure(2) do |config|
 
 
-  config.vm.define "gitlab" do |gitlab|
-    gitlab.vm.box = "ubuntu/trusty64"
-    gitlab.vm.box_check_update = true
+  config.vm.define "utamas" do |utamas|
+    utamas.vm.box = "ubuntu/trusty64"
+    utamas.vm.box_check_update = true
 
-    gitlab.vm.network "private_network", ip: "192.168.200.100"
+    utamas.vm.network "private_network", ip: "192.168.200.100"
 
-    gitlab.vm.synced_folder "./utamas/", "/home/vagrant/utamas"
+    utamas.vm.synced_folder "./share/", "/home/vagrant/utamas"
 
-    gitlab.vm.provider "virtualbox" do |vb|
-      vb.name = "gitlab"
+    utamas.vm.provider "virtualbox" do |vb|
+      vb.name = "utamas"
       vb.memory = "2048"
     end
 
-    gitlab.vm.provision "shell" do |script|
+    utamas.vm.provision "shell" do |script|
       script.path = "provision/utamas-update-kernel.sh"
       script.args = ["#{configuration['user']['name']}", "#{configuration['user']['passwd']}", "#{configuration['country']}", "#{configuration['kernel']}"]
     end
 
-    gitlab.vm.provision :reload
+    utamas.vm.provision :reload
 
-    gitlab.vm.provision "shell" do |script|
+    utamas.vm.provision "shell" do |script|
       script.path = "provision/utamas-install.sh"
+      script.args = ["#{configuration['service']['dns']['rootPassword']}"]
     end
 
-  end
-
-  config.vm.define "sandbox" do |sandbox|
-    sandbox.vm.box = "ubuntu/trusty64"
-    sandbox.vm.box_check_update = true
-
-    sandbox.vm.network "private_network", ip: "192.168.200.100"
-
-    sandbox.vm.synced_folder "./utamas/", "/home/vagrant/utamas"
-
-    sandbox.vm.provider "virtualbox" do |vb|
-      vb.name = "sandbox"
-      vb.memory = "1024"
-    end
   end
 end
