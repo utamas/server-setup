@@ -1,3 +1,4 @@
+*.box
 .idea
-.vagrant
-config.yaml
+**/.vagrant
+steps/config.yaml
