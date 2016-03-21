@@ -4,25 +4,32 @@
 require 'yaml'
 configuration = YAML.load_file('../config.yaml')
 
+hostname="dev.utamas.pw"
+
 Vagrant.configure(2) do |server|
   server.vm.box = "hawk1222"
   server.vm.box_check_update = true
 
+  server.vm.hostname = "#{hostname}"
+
+  server.vm.synced_folder ".", "/vagrant", disabled: true
+
   server.vm.network "private_network", ip: "42.42.42.42"
-  server.vm.network "forwarded_port", guest: 8080, host: 8080
+  server.vm.network "forwarded_port", guest: 80, host: 8080
 
   server.vm.provider "virtualbox" do |vb|
-    vb.name = "hawk122"
+    vb.name = "#{hostname}"
     vb.memory = "2048"
   end
 
+  # This is needed in for docker
   server.vm.provider "virtualbox" do |v|
     v.customize ['modifyvm', :id, '--nictype1', 'Am79C973']
     v.customize ['modifyvm', :id, '--nicpromisc1', 'allow-all']
   end
 
+  server.vm.provision "file", source: "../03_ansible_setup/tmp/id_rsa.pub", destination: "/home/vagrant/.ssh/authorized_keys_"
   server.vm.provision "shell" do |script|
-    script.path = "provision/create-containers.sh"
-    script.args = ["#{configuration['ports']['gitlab']}"]
+    script.path = "provision/setup.sh"
   end
 end

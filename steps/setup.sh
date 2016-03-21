@@ -28,7 +28,7 @@ function createBox() {
 
 		echo "Importing box"
 		if [ -n "$(vagrant box list | grep $boxname)" ]; then
-			vagrant box remove $boxname >> $logFile
+			vagrant box remove $boxname --all --force >> $logFile
 		fi
 		vagrant box add $boxname $boxname.box >> $logFile
 	)
@@ -48,4 +48,5 @@ function setupServer() {
 	)
 }
 
-createBox "$@"
+createBox "$@" \
+	&& setupServer

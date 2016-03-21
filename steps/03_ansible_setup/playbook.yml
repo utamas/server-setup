@@ -1,0 +1,28 @@
+---
+- name: Build an image by running ansible in a container
+  hosts: test
+
+  vars:
+    googleDnsIp: 8.8.4.4
+
+  tasks:
+    - name: installing pip
+      apt: >
+        pkg={{item}}
+        state=present
+      with_items:
+        - python-pip
+
+    - name: install the version of docker-py used by ansible
+      pip: name=docker-py version=1.1.0
+
+    - name: "create custom network: {{networkName}}"
+      shell: "if [ -z \"$(docker network ls | grep {{networkName}})\" ]; then docker network create -d bridge --subnet {{network_range}} {{networkName}}; fi"
+      changed_when: False
+
+    - name: "Making sure that DNS server is stopped."
+      command: "docker rm -f bind"
+
+    - name: "Starting DNS server"
+      command: "docker run -d --net={{networkName}} --dns={{googleDnsIp}} --ip={{dnsServerIp}} --name=bind --hostname=dns.{{networkName}} -e ROOT_PASSWORD={{bindPassword}} --publish={{hostIp}}:53:53/udp --publish=8080:8080 -v {{folders.bindFolder}}:/data sameersbn/bind:latest"
+

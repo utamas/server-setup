@@ -1,0 +1,12 @@
+$ttl 38400
+apol.lo.	IN	SOA	dns.apollo. john\.doe.apol.lo. (
+			1458563209
+			10800
+			3600
+			604800
+			38400 )
+apol.lo.	IN	NS	dns.apollo.
+server1.apol.lo.	3600	IN	A	192.168.42.2
+jupiter.apol.lo.	IN	CNAME	server1
+ci-server.devtools.apol.lo.	IN	A	192.168.42.100
+git.devtools.apol.lo.	3600	IN	A	192.168.42.110

@@ -2,3 +2,10 @@
 .idea
 **/.vagrant
 steps/config.yaml
+steps/02_server_setup/shared/sameersbn
+!steps/02_server_setup/shared/sameersbn/bind/bind/lib
+!steps/02_server_setup/shared/sameersbn/bind/webmin/etc/miniserv.conf
+steps/03_ansible_setup/tmp
+steps/03_ansible_setup/params.json
+steps/02_server_setup/shared
+steps/untitled.sh

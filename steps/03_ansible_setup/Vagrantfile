@@ -1,0 +1,22 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+hostname="ansible"
+
+Vagrant.configure(2) do |server|
+  server.vm.box = "ubuntu/trusty64"
+  server.vm.box_check_update = true
+
+  server.vm.network "private_network", ip: "42.42.42.10"
+
+  server.vm.hostname = "#{hostname}"
+
+  server.vm.provider "virtualbox" do |vb|
+    vb.name = "#{hostname}"
+    vb.memory = "512"
+  end
+
+  server.vm.provision "shell" do |script|
+    script.path = "provision/setup.sh"
+  end
+end
